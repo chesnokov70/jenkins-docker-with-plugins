@@ -1,0 +1,16 @@
+version: '3.8'
+services:
+  jenkins:
+    image: oleksiipasichnyk/jenkins-custom-plugins:v1   #jenkins/jenkins:lts
+    ports:
+      - "8080:8080"
+    volumes:
+      - jenkins_data:/var/jenkins_home
+    restart: always
+volumes:
+  jenkins_data:
+    driver: local
+    driver_opts:
+      type: none
+      device: /home/ubuntu/docker_projects/var/lib/jenkins  # Path to the local folder on your host machine
+      o: bind
