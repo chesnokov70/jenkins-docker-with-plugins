@@ -24,3 +24,11 @@ resource "local_file" "ansible-hosts" {
     public-ip   = aws_instance.jenkins_docker.public_ip
   })
 }
+
+#output "jenkins_url" {
+#  value = "http://${aws_route53_record.jenkins.name}"
+#}
+
+output "zone_id" {
+  value = data.aws_route53_zone.main.zone_id
+}

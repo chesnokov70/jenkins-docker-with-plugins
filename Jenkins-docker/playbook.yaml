@@ -1,0 +1,150 @@
+---
+- name: Install Docker, Docker Compose, Terraform, and Jenkins backup
+  hosts: all
+  become: true
+  vars:
+    ansible_user: ubuntu
+    docker_projects_dir: /home/ubuntu/docker_projects
+    docker_compose_jenkins_file: "{{ docker_projects_dir }}/docker-compose.yaml"
+    nginx_conf_dir: /etc/nginx/sites-available
+    nginx_ssl_dir: /etc/letsencrypt/live/jenkins.com-it.com    
+    terraform_version: "1.6.0"
+  tasks:
+    # Docker and Docker Compose Installation Tasks
+    - name: Update package index
+      apt:
+        update_cache: yes
+        cache_valid_time: 3600
+
+    - name: Install dependencies for Docker
+      apt:
+        name:
+          [
+            "apt-transport-https",
+            "ca-certificates",
+            "gnupg",
+            "software-properties-common",
+          ]
+        state: present
+
+    - name: Import GPG key for Docker repository
+      apt_key:
+        url: https://download.docker.com/linux/ubuntu/gpg
+        id: 0EBFCD88
+
+    - name: Add source list for Docker repository
+      apt_repository:
+        repo: "deb [arch=amd64] https://download.docker.com/linux/ubuntu noble stable"
+        state: present
+
+    - name: Install Docker
+      apt:
+        name: docker-ce
+        state: present
+
+    - name: Install Docker Compose
+      apt:
+        name: docker-compose-plugin
+        state: present
+
+    - name: Install Certbot and NGINX
+      apt:
+        name:
+          [
+            "certbot",
+            "python3-certbot-nginx",
+            "nginx"
+          ]
+        state: present        
+
+    - name: Create a new group for the Docker socket
+      group:
+        name: docker
+        state: present
+
+    - name: Create a new user for the Docker socket
+      user:
+        name: docker
+        group: docker
+        shell: /bin/false
+        system: yes
+        create_home: no
+
+    - name: Create a new directory for Docker Compose projects
+      file:
+        path: "{{ docker_projects_dir }}"
+        state: directory
+        mode: "0755"
+
+    - name: Copy over Docker compose file
+      copy:
+        src: docker-compose.yaml
+        dest: "{{ docker_compose_jenkins_file }}"
+
+    - name: Add user to the docker group
+      user:
+        name: "{{ ansible_user }}"
+        groups: docker
+        append: yes
+      notify:
+        - Reload systemd daemon to pick up new Docker service configuration
+        - daemon-reload
+
+    - name: Ensure Jenkins volume directory exists
+      file:
+        path: /home/ubuntu/docker_projects/var/lib/jenkins
+        state: directory
+        owner: ubuntu
+        group: docker
+        mode: "0755"
+
+    - name: Start Jenkins and NGINX using Docker Compose
+      command: "docker compose -f {{ docker_compose_jenkins_file }} up -d"
+
+    - name: Wait for Jenkins to generate initialAdminPassword
+      ansible.builtin.wait_for:
+        path: /home/ubuntu/docker_projects/var/lib/jenkins/secrets/initialAdminPassword
+        timeout: 600
+        state: present
+
+    - name: Retrieve initialAdminPassword
+      command: cat /home/ubuntu/docker_projects/var/lib/jenkins/secrets/initialAdminPassword
+      register: initial_admin_password
+
+    - name: Display initialAdminPassword
+      debug:
+        msg: "Jenkins Initial Admin Password: {{ initial_admin_password.stdout }}"
+
+    # Terraform Installation Tasks
+    - name: Download Terraform binary
+      get_url:
+        url: "https://releases.hashicorp.com/terraform/{{ terraform_version }}/terraform_{{ terraform_version }}_linux_amd64.zip"
+        dest: "/tmp/terraform.zip"
+        mode: "0644"
+
+    - name: Unzip Terraform binary
+      unarchive:
+        src: "/tmp/terraform.zip"
+        dest: "/usr/local/bin/"
+        remote_src: yes
+
+    - name: Set executable permissions for Terraform
+      file:
+        path: "/usr/local/bin/terraform"
+        mode: "0755"
+
+    - name: Verify Terraform installation
+      command: terraform version
+      register: terraform_version_output
+
+    - name: Display Terraform version
+      debug:
+        msg: "Terraform Installed Version: {{ terraform_version_output.stdout }}"
+
+  handlers:
+    - name: Reload systemd daemon to pick up new Docker service configuration
+      systemd:
+        name: docker
+        state: restarted
+    - name: daemon-reload
+      command: systemctl daemon-reload
