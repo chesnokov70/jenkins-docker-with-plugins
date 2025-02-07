@@ -1,12 +1,12 @@
-version: '3.8'
 services:
   jenkins:
-    image: oleksiipasichnyk/jenkins-custom-plugins:v1   #jenkins/jenkins:lts
+    image: jenkins/jenkins:lts
     ports:
       - "8080:8080"
     volumes:
       - jenkins_data:/var/jenkins_home
     restart: always
+
 volumes:
   jenkins_data:
     driver: local
