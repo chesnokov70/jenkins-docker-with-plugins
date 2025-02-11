@@ -1,6 +1,6 @@
 services:
   jenkins:
-    image: jenkins/jenkins:lts
+    image: chesnokov70/jenkins-plugins:v1
     ports:
       - "8080:8080"
     volumes:

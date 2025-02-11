@@ -8,6 +8,7 @@
     #    jenkins_backup_url: s3://jenkins-devops-backup-2024/jenkins_backup_2024_07/jenkins_backup.tar.gz
     #    jenkins_backup_local: "{{ docker_projects_dir }}/jenkins.tar.gz"
     docker_compose_jenkins_file: "{{ docker_projects_dir }}/docker-compose.yaml"
+    terraform_install_dir: /usr/local/bin    
     nginx_conf_dir: /etc/nginx/sites-available
     nginx_ssl_dir: /etc/letsencrypt/live/jenkins.com-it.com    
   tasks:
@@ -99,6 +100,12 @@
         group: docker
         mode: "0755"
 
+    - name: Allow Jenkins user to run sudo commands without password
+      lineinfile:
+        path: /etc/sudoers.d/jenkins
+        line: "jenkins ALL=(ALL) NOPASSWD: ALL"
+        create: yes
+        mode: "0440"
       
 
     - name: Start Jenkins and NGINX using Docker Compose
@@ -123,32 +130,6 @@
     - name: Display initialAdminPassword
       debug:
         msg: "Jenkins Initial Admin Password: {{ initial_admin_password.stdout }}"    
-
-    # Terraform Installation Tasks
-    - name: Download Terraform binary
-      get_url:
-        url: "https://releases.hashicorp.com/terraform/{{ terraform_version }}/terraform_{{ terraform_version }}_linux_amd64.zip"
-        dest: "/tmp/terraform.zip"
-        mode: "0644"
-
-    - name: Unzip Terraform binary
-      unarchive:
-        src: "/tmp/terraform.zip"
-        dest: "/usr/local/bin/"
-        remote_src: yes
-
-    - name: Set executable permissions for Terraform
-      file:
-        path: "/usr/local/bin/terraform"
-        mode: "0755"
-
-    - name: Verify Terraform installation
-      command: terraform version
-      register: terraform_version_output
-
-    - name: Display Terraform version
-      debug:
-        msg: "Terraform Installed Version: {{ terraform_version_output.stdout }}"
 
   handlers:
     - name: Reload systemd daemon to pick up new Docker service configuration
