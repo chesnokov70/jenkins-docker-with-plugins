@@ -23,7 +23,6 @@ resource "aws_iam_role" "jenkins_role_devops_course" {
 }
 
 # RBAC - Role Based Access Control | Least Privilege
-
 resource "aws_iam_role_policy" "jenkins_role_devops_course" {
   name = "jenkins_role_devops_course_policy"
   role = aws_iam_role.jenkins_role_devops_course.id
@@ -48,11 +47,58 @@ resource "aws_iam_role_policy" "jenkins_role_devops_course" {
       {
         Action = [
           "iam:PassRole",
-          "iam:ListRoles"
+          "iam:ListRoles",
+          "iam:GetInstanceProfile",  # Added GetInstanceProfile permission
+		  		"iam:CreateRole",
+			  	"iam:DeleteRole",
+			  	"iam:AttachRolePolicy",
+			  	"iam:DetachRolePolicy",
+			  	"iam:PutRolePolicy",
+			  	"iam:ListAttachedRolePolicies",
+			  	"iam:ListRolePolicies",
+			  	"iam:ListRoleTags",
+			  	"iam:GetRole",
+		  		"iam:GetRolePolicy",
+		  		"iam:PassRole",
+		  		"iam:ListRoles",
+		  		"iam:DeleteRolePolicy",
+		  		"iam:CreateInstanceProfile",
+		  		"iam:ListInstanceProfilesForRole",
+		  		"iam:GetInstanceProfile",
+		  		"iam:DeleteRole",
+		  		"iam:DeleteInstanceProfile",
+		  		"iam:AddRoleToInstanceProfile",
+		  		"iam:RemoveRoleFromInstanceProfile",
+		  		"iam:TagRole",
+		  		"iam:GetPolicy",
+		  		"iam:ListPolicies"          
         ],
         Effect   = "Allow",
         Resource = "*"
-      }
+      },
+      {
+        Action = [
+  			"autoscaling:Describe*",
+				"autoscaling:UpdateAutoScalingGroup",
+				"autoscaling:CreateAutoScalingGroup",
+				"autoscaling:DeleteAutoScalingGroup"
+        ],
+        Effect   = "Allow",
+        Resource = "*"
+      },
+            {
+        Action = [
+
+				"ssm:GetParameter",
+				"ssm:GetParameters",
+				"ssm:DescribeParameters",
+				"ssm:PutParameter",
+				"ssm:ListTagsForResource",
+				"ssm:DeleteParameter"       
+         ],
+        Effect   = "Allow",
+        Resource = "*"
+      }      
     ]
   })
 }

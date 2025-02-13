@@ -38,6 +38,7 @@ terraform.rc
 
 # other
 .vscode
+.ansible
 *.tfstate
 *.terraform
 *.terraform.lock.*
